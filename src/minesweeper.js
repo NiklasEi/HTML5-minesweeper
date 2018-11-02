@@ -1,8 +1,8 @@
 const canvas = document.getElementById("myCanvas");
 const ctx = canvas.getContext("2d");
 
-//canvas.width = window.innerWidth;
-//canvas.height = window.innerHeight;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
 window.addEventListener('resize', resizeCanvas, false);
 
@@ -16,7 +16,7 @@ function resizeCanvas() {
 let images = {};
 preLoad();
 
-const sizePerBox = 15;
+const sizePerBox = 30;
 const columns = Math.floor(canvas.width/sizePerBox);
 const rows = Math.floor(canvas.height/sizePerBox);
 const offsetX = Math.floor((canvas.width % sizePerBox)/2);
@@ -25,6 +25,9 @@ const numberOfBombs = Math.floor((columns * rows) / 10);
 let leftToUncover = (columns * rows) - numberOfBombs;
 let flags = 0;
 let running = false;
+
+let currentlyTouchedElement;
+let touchStart;
 
 const grid = [];
 for (let row = 0; row < rows; row++) {
@@ -67,7 +70,7 @@ function render() {
 }
 
 function draw(img, column, row) {
-    ctx.drawImage(img, column * sizePerBox + offsetX, row * sizePerBox + offsetY);
+    ctx.drawImage(img, column * sizePerBox + offsetX, row * sizePerBox + offsetY, sizePerBox, sizePerBox);
 }
 
 function update() {
@@ -137,6 +140,7 @@ function collectSlotsToUncover(x, y) {
         let slotToUncover = slot.neighbors[i];
         if (slotsToUncover.has(slotToUncover)) continue;
         if (grid[slotToUncover].isBomb) continue;
+        if (grid[slotToUncover].isFlagged) continue;
         if (!grid[slotToUncover].isCovered) continue;
         slotsToUncover.add(slotToUncover);
         if ((grid[slotToUncover].warning === 0) && !grid[slotToUncover].isFlagged)
@@ -146,11 +150,11 @@ function collectSlotsToUncover(x, y) {
 
 function uncoverArea() {
     for (let slotNum of slotsToUncover) {
-        leftToUncover --;
-        console.log("left: " + leftToUncover);
         let slot = grid[slotNum];
         slot.isCovered = false;
         slot.img = images[slot.warning];
+        leftToUncover --;
+        console.log("left: " + leftToUncover);
         draw(slot.img, slotNum % columns, Math.floor(slotNum / columns))
     }
     if (leftToUncover === 1) won();
@@ -236,8 +240,48 @@ function preLoad() {
     };
 }
 
-canvas.addEventListener("mousedown", onClick, false);
-canvas.addEventListener("touchstart", onTouch, false);
+let manager = new Hammer.Manager(canvas);
+
+let Tap = new Hammer.Tap({
+    taps: 1
+});
+
+let Press = new Hammer.Press({
+    time: 500
+});
+
+
+manager.add(Tap);
+manager.add(Press);
+
+manager.get('press').recognizeWith('tap');
+manager.get('tap').requireFailure('press');
+
+manager.on('tap press', function(event) {
+    console.log(event);
+
+    x = event.center.x + window.pageXOffset;
+    y = event.center.y + window.pageYOffset;
+
+    x -= canvas.offsetLeft;
+    y -= canvas.offsetTop;
+
+    if (!running) return;
+    if (event.type === 'tap') uncover(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
+    if (event.type === 'press') flag(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
+});
+
+
+
+
+/*
+if('ontouchstart' in window) {
+    canvas.addEventListener("touchstart", onTouchStart, false);
+    canvas.addEventListener("touchmove", onTouchMove, false);
+    canvas.addEventListener("touchend", onTouchEnd, false);
+}
+else canvas.addEventListener("mousedown", onClick, false);
+
 
 function onClick(event) {
     if (!running) return;
@@ -252,8 +296,8 @@ function onClick(event) {
     if (event.button === 2) flag(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
 }
 
-function onTouch(event) {
-    if (event.targetTouches.length === 1) { //one finger touche
+function onTouchStart(event) {
+    //if (event.targetTouches.length === 1) { //one finger touche
         let touch = event.targetTouches[0];
 
         let x = touch.pageX;
@@ -262,6 +306,45 @@ function onTouch(event) {
         x -= canvas.offsetLeft;
         y -= canvas.offsetTop;
 
-        uncover(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
-    }
+        currentlyTouchedElement = grid[Math.floor(x / sizePerBox) + Math.floor(y / sizePerBox) * columns];
+        touchStart = performance.now();
+    //}
 }
+
+function onTouchMove(event) {
+    //if (event.targetTouches.length === 1) { //one finger touche
+        let touch = event.targetTouches[0];
+
+        let x = touch.pageX;
+        let y = touch.pageY;
+
+        x -= canvas.offsetLeft;
+        y -= canvas.offsetTop;
+
+        if (typeof currentlyTouchedElement == undefined) return;
+        if (currentlyTouchedElement !== grid[Math.floor(x / sizePerBox) + Math.floor(y / sizePerBox) * columns]) {
+            touchStart = performance.now();
+            currentlyTouchedElement = grid[Math.floor(x / sizePerBox) + Math.floor(y / sizePerBox) * columns];
+        }
+    //}
+}
+
+function onTouchEnd(event) {
+    //if (event.targetTouches.length === 1) { //one finger touche
+        let touch = event.targetTouches[0];
+
+        let x = touch.pageX;
+        let y = touch.pageY;
+
+        x -= canvas.offsetLeft;
+        y -= canvas.offsetTop;
+
+        if ((performance.now() - touchStart) > 2000) {
+            flag(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
+        } else {
+            uncover(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
+        }
+        currentlyTouchedElement = undefined;
+    //}
+}
+*/
