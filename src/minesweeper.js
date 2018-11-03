@@ -14,7 +14,7 @@ window.addEventListener('resize', resizeCanvas, false);
 function resizeCanvas() {
     //canvas.width = window.innerWidth;
     //canvas.height = window.innerHeight;
-    // ToDo
+    // ToDo prob best to not allow turned phone...
     // redraw();
 }
 
@@ -185,13 +185,13 @@ function flag(x, y) {
 function lost() {
     uncoverAll();
     document.title = "You lost!";
-    head.innerText = "You lost! Reload the page to start again.";
+    head.innerText = "You lost!";
     stopGame();
 }
 
 function won() {
     document.title = "You won!";
-    head.innerText = "You won! Reload the page to start again.";
+    head.innerText = "You won!";
     stopGame();
 }
 
@@ -291,13 +291,14 @@ function onClick(event) {
 
 let currentTouchTimer;
 let longTouchDuration = 500;
+let ignoreTouchEnd = false;
 
 function onTouchStart(event) {
     if (!started) {
         started = true;
         runTimer();
     }
-    if (event.changedTouches.length === 1) { //one finger touche
+    if (event.changedTouches.length === 1) { //one finger touch
         let touch = event.changedTouches[0];
 
         let x = touch.pageX;
@@ -306,13 +307,18 @@ function onTouchStart(event) {
         x -= canvas.offsetLeft;
         y -= canvas.offsetTop;
 
-        currentTouchTimer = setTimeout(function() { flag(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox)); }, longTouchDuration);
+        currentTouchTimer = setTimeout(function() { touchFlag(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox)); }, longTouchDuration);
         event.preventDefault();
     }
 }
 
+function touchFlag(x, y) {
+    flag(x, y);
+    ignoreTouchEnd = true;
+}
+
 function onTouchEnd(event) {
-    if (event.changedTouches.length === 1) { //one finger touche
+    if (event.changedTouches.length === 1) { //one finger touch
         let touch = event.changedTouches[0];
 
         let x = touch.pageX;
@@ -321,10 +327,9 @@ function onTouchEnd(event) {
         x -= canvas.offsetLeft;
         y -= canvas.offsetTop;
 
-        if (currentTouchTimer) {
-            clearTimeout(currentTouchTimer);
-            uncover(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
-        }
+        clearTimeout(currentTouchTimer);
+        if (!ignoreTouchEnd) uncover(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
+        else ignoreTouchEnd = false;
         event.preventDefault();
     }
 }
