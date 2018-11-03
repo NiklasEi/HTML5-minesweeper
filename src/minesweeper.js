@@ -1,8 +1,13 @@
 const canvas = document.getElementById("myCanvas");
 const ctx = canvas.getContext("2d");
+const head = document.getElementById("head");
+
+const timer = document.getElementById("timer");
 
 canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+// leave 60px for top margin
+canvas.height = window.innerHeight - 60;
+canvas.style.backgroundColor = "darkgray";
 
 window.addEventListener('resize', resizeCanvas, false);
 
@@ -21,13 +26,12 @@ const columns = Math.floor(canvas.width/sizePerBox);
 const rows = Math.floor(canvas.height/sizePerBox);
 const offsetX = Math.floor((canvas.width % sizePerBox)/2);
 const offsetY = Math.floor((canvas.height % sizePerBox)/2);
-const numberOfBombs = Math.floor((columns * rows) / 10);
+const numberOfBombs = Math.floor((columns * rows) / 8);
 let leftToUncover = (columns * rows) - numberOfBombs;
 let flags = 0;
 let running = false;
+let started = false;
 
-let currentlyTouchedElement;
-let touchStart;
 
 const grid = [];
 for (let row = 0; row < rows; row++) {
@@ -43,7 +47,7 @@ for (let row = 0; row < rows; row++) {
     }
 }
 
-console.log("Grid size: " + grid.length);
+console.log("Grid with " + grid.length + " slots and " + numberOfBombs + " bombs.");
 
 for (let i = 0; i < numberOfBombs; i++) {
     let randColumn = Math.floor((Math.random() * columns));
@@ -75,6 +79,7 @@ function draw(img, column, row) {
 
 function update() {
     document.title = "Mines: " + flags + "/" + numberOfBombs;
+    head.innerText = "Mines: " + flags + "/" + numberOfBombs;
 }
 
 function getNeighbors(row, column) {
@@ -112,6 +117,7 @@ function start() {
     running = true;
     render();
     update();
+    timer.innerText = "Click to start";
 }
 window.onload = start;
 
@@ -179,12 +185,19 @@ function flag(x, y) {
 function lost() {
     uncoverAll();
     document.title = "You lost!";
-    running = false;
+    head.innerText = "You lost! Reload the page to start again.";
+    stopGame();
 }
 
 function won() {
     document.title = "You won!";
+    head.innerText = "You won! Reload the page to start again.";
+    stopGame();
+}
+
+function stopGame() {
     running = false;
+    clearTimeout(timerID);
 }
 
 function uncoverAll() {
@@ -240,51 +253,31 @@ function preLoad() {
     };
 }
 
-let manager = new Hammer.Manager(canvas);
+let time = 0;
+let timerID;
+function runTimer() {
+    displayTime();
+    timerID = setTimeout(runTimer, 1000);
+    time ++;
+}
 
-let Tap = new Hammer.Tap({
-    taps: 1
-});
+function displayTime() {
+    let minutes = Math.floor(time / 60);
+    let seconds = time % 60;
+    timer.innerText = (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds < 10 ? "0" + seconds : seconds);
+}
 
-let Press = new Hammer.Press({
-    time: 500
-});
-
-
-manager.add(Tap);
-manager.add(Press);
-
-manager.get('press').recognizeWith('tap');
-manager.get('tap').requireFailure('press');
-
-manager.on('tap press', function(event) {
-    console.log(event);
-
-    x = event.center.x + window.pageXOffset;
-    y = event.center.y + window.pageYOffset;
-
-    x -= canvas.offsetLeft;
-    y -= canvas.offsetTop;
-
-    if (!running) return;
-    if (event.type === 'tap') uncover(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
-    if (event.type === 'press') flag(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
-});
-
-
-
-
-/*
 if('ontouchstart' in window) {
     canvas.addEventListener("touchstart", onTouchStart, false);
-    canvas.addEventListener("touchmove", onTouchMove, false);
     canvas.addEventListener("touchend", onTouchEnd, false);
-}
-else canvas.addEventListener("mousedown", onClick, false);
-
+} else canvas.addEventListener("mousedown", onClick, false);
 
 function onClick(event) {
     if (!running) return;
+    if (!started) {
+        started = true;
+        runTimer();
+    }
 
     let x = event.x;
     let y = event.y;
@@ -296,9 +289,16 @@ function onClick(event) {
     if (event.button === 2) flag(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
 }
 
+let currentTouchTimer;
+let longTouchDuration = 500;
+
 function onTouchStart(event) {
-    //if (event.targetTouches.length === 1) { //one finger touche
-        let touch = event.targetTouches[0];
+    if (!started) {
+        started = true;
+        runTimer();
+    }
+    if (event.changedTouches.length === 1) { //one finger touche
+        let touch = event.changedTouches[0];
 
         let x = touch.pageX;
         let y = touch.pageY;
@@ -306,32 +306,14 @@ function onTouchStart(event) {
         x -= canvas.offsetLeft;
         y -= canvas.offsetTop;
 
-        currentlyTouchedElement = grid[Math.floor(x / sizePerBox) + Math.floor(y / sizePerBox) * columns];
-        touchStart = performance.now();
-    //}
-}
-
-function onTouchMove(event) {
-    //if (event.targetTouches.length === 1) { //one finger touche
-        let touch = event.targetTouches[0];
-
-        let x = touch.pageX;
-        let y = touch.pageY;
-
-        x -= canvas.offsetLeft;
-        y -= canvas.offsetTop;
-
-        if (typeof currentlyTouchedElement == undefined) return;
-        if (currentlyTouchedElement !== grid[Math.floor(x / sizePerBox) + Math.floor(y / sizePerBox) * columns]) {
-            touchStart = performance.now();
-            currentlyTouchedElement = grid[Math.floor(x / sizePerBox) + Math.floor(y / sizePerBox) * columns];
-        }
-    //}
+        currentTouchTimer = setTimeout(function() { flag(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox)); }, longTouchDuration);
+        event.preventDefault();
+    }
 }
 
 function onTouchEnd(event) {
-    //if (event.targetTouches.length === 1) { //one finger touche
-        let touch = event.targetTouches[0];
+    if (event.changedTouches.length === 1) { //one finger touche
+        let touch = event.changedTouches[0];
 
         let x = touch.pageX;
         let y = touch.pageY;
@@ -339,12 +321,10 @@ function onTouchEnd(event) {
         x -= canvas.offsetLeft;
         y -= canvas.offsetTop;
 
-        if ((performance.now() - touchStart) > 2000) {
-            flag(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
-        } else {
+        if (currentTouchTimer) {
+            clearTimeout(currentTouchTimer);
             uncover(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
         }
-        currentlyTouchedElement = undefined;
-    //}
+        event.preventDefault();
+    }
 }
-*/

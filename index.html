@@ -5,15 +5,36 @@
     <meta charset="utf-8" />
     <title id="title">Mines</title>
     <style>
-        * { padding: 0; margin: 0; }
-        canvas { background: #eee; display: block; margin: 0 auto; }
+        * {
+            padding: 0;
+            margin: 0;
+        }
+        canvas {
+            display: block;
+            margin: auto 0;
+        }
+        #head {
+            height: 20px;
+            align-content: center;
+            text-align: center;
+            padding-top: 20px;
+        }
+        #timer {
+            align-content: center;
+            text-align: center;
+            height: 20px;
+        }
     </style>
 </head>
 <body>
 
-<canvas id="myCanvas" width="320" height="480" oncontextmenu="return false;"></canvas>
+<div style="background-color: aqua">
+    <p id="head">Loading ...</p>
+    <p id="timer"></p>
+</div>
+<canvas id="myCanvas" oncontextmenu="return false;"></canvas>
 
-<script src="src/assets/js/hammer.min.js"></script>
+<script src="https://telegram.org/js/games.js"></script>
 <script src="src/minesweeper.js"></script>
 
 </body>
