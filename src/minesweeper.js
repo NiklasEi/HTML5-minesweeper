@@ -302,6 +302,9 @@ function onClick(event) {
     x -= canvas.offsetLeft;
     y -= canvas.offsetTop;
 
+    x -= offsetX;
+    y -= offsetY;
+
     if (event.button === 0) uncover(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
     if (event.button === 2) flag(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
 }
@@ -324,6 +327,9 @@ function onTouchStart(event) {
         x -= canvas.offsetLeft;
         y -= canvas.offsetTop;
 
+        x -= offsetX;
+        y -= offsetY;
+
         currentTouchTimer = setTimeout(function() { touchFlag(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox)); }, longTouchDuration);
         event.preventDefault();
     }
@@ -343,6 +349,9 @@ function onTouchEnd(event) {
 
         x -= canvas.offsetLeft;
         y -= canvas.offsetTop;
+
+        x -= offsetX;
+        y -= offsetY;
 
         clearTimeout(currentTouchTimer);
         if (!ignoreTouchEnd) uncover(Math.floor(x / sizePerBox), Math.floor(y / sizePerBox));
