@@ -19,6 +19,7 @@ function resizeCanvas() {
 }
 
 let images = {};
+let sounds = {};
 preLoad();
 
 const sizePerBox = 30;
@@ -125,8 +126,11 @@ function uncover(x, y) {
     let slot = grid[y * columns + x];
     if (!slot.isCovered) return;
     if (slot.isFlagged) return;
-    if (slot.isBomb) lost();
-    else slot.img = images[slot.warning];
+    if (slot.isBomb) {
+        lost();
+        return;
+    } else slot.img = images[slot.warning];
+    sounds.click.play();
     slot.isCovered = false;
     if (leftToUncover === 1) won();
     else leftToUncover --;
@@ -170,6 +174,7 @@ function uncoverArea() {
 function flag(x, y) {
     let slot = grid[y * columns + x];
     if (!slot.isCovered) return;
+    sounds.click.play();
     if (slot.isFlagged) {
         flags --;
         slot.img = images.cover;
@@ -183,6 +188,7 @@ function flag(x, y) {
 }
 
 function lost() {
+    sounds.explosion.play();
     uncoverAll();
     document.title = "You lost!";
     head.innerText = "You lost!";
@@ -190,6 +196,7 @@ function lost() {
 }
 
 function won() {
+    sounds.success.play();
     document.title = "You won!";
     head.innerText = "You won!";
     stopGame();
@@ -251,6 +258,16 @@ function preLoad() {
         7: warning7,
         8: warning8
     };
+
+    const success = new Audio("src/assets/success.wav");
+    const explosion = new Audio("src/assets/explosion.mp3");
+    const click = new Audio("src/assets/click.wav");
+
+    sounds = {
+        success: success,
+        explosion: explosion,
+        click: click
+    }
 }
 
 let time = 0;
