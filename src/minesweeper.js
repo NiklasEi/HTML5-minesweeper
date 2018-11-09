@@ -1,7 +1,7 @@
 const canvas = document.getElementById("myCanvas");
 const ctx = canvas.getContext("2d");
 const head = document.getElementById("head");
-
+let audioContext;
 const timer = document.getElementById("timer");
 
 canvas.width = window.innerWidth;
@@ -120,7 +120,46 @@ function start() {
     update();
     timer.innerText = "Click to start";
 }
-window.onload = start;
+window.onload = loadSound;
+
+function loadSound() {
+    document.title = "Loading sounds ...";
+    head.innerText = "Loading sounds ...";
+    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+    audioContext = new AudioContext();
+
+    let bufferLoader = new BufferLoader(
+        audioContext,
+        [
+            'src/assets/success.wav',
+            'src/assets/explosion.mp3',
+            'src/assets/click.wav',
+        ],
+        finishedLoadingSounds
+    );
+
+    bufferLoader.load();
+}
+
+function finishedLoadingSounds(bufferList) {
+    const success = audioContext.createBufferSource();
+    success.buffer = bufferList[0];
+    const explosion = audioContext.createBufferSource();
+    explosion.buffer = bufferList[1];
+    const click = audioContext.createBufferSource();
+    click.buffer = bufferList[2];
+
+    success.connect(audioContext.destination);
+    explosion.connect(audioContext.destination);
+    click.connect(audioContext.destination);
+
+    sounds = {
+        success: success,
+        explosion: explosion,
+        click: click
+    };
+    start();
+}
 
 function uncover(x, y) {
     let slot = grid[y * columns + x];
@@ -130,7 +169,7 @@ function uncover(x, y) {
         lost();
         return;
     } else slot.img = images[slot.warning];
-    sounds.click.play();
+    sounds.click.start(0);
     slot.isCovered = false;
     if (leftToUncover === 1) won();
     else leftToUncover --;
@@ -174,7 +213,7 @@ function uncoverArea() {
 function flag(x, y) {
     let slot = grid[y * columns + x];
     if (!slot.isCovered) return;
-    sounds.click.play();
+    sounds.click.start(0);
     if (slot.isFlagged) {
         flags --;
         slot.img = images.cover;
@@ -188,7 +227,7 @@ function flag(x, y) {
 }
 
 function lost() {
-    sounds.explosion.play();
+    sounds.explosion.start(0);
     uncoverAll();
     document.title = "You lost!";
     head.innerText = "You lost!";
@@ -196,7 +235,7 @@ function lost() {
 }
 
 function won() {
-    sounds.success.play();
+    sounds.success.start(0);
     document.title = "You won!";
     head.innerText = "You won!";
     stopGame();
@@ -258,16 +297,6 @@ function preLoad() {
         7: warning7,
         8: warning8
     };
-
-    const success = new Audio("src/assets/success.wav");
-    const explosion = new Audio("src/assets/explosion.mp3");
-    const click = new Audio("src/assets/click.wav");
-
-    sounds = {
-        success: success,
-        explosion: explosion,
-        click: click
-    }
 }
 
 let time = 0;
